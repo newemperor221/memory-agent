@@ -302,6 +302,46 @@ cat /tmp/memory-system.log
 - 确认 `MEMORY_L1_PATH` 设置为 `/home/woioeow/.openclaw/workspace/.memory-l1/`
 - 旧数据在 `/tmp/memory_l1/`（可删除）
 
+### 记忆显示为 "unknown" 而非 Agent ID
+**问题**：写入公共记忆时显示为 `unknown`，而非实际的 Agent ID。
+
+**原因**：`MEMORY_AGENT_ID` 环境变量未设置或未正确传递。
+
+**排查步骤**：
+```bash
+# 1. 检查当前进程的 AGENT_ID
+cat /proc/$(pgrep memory-system)/environ | tr '\0' '\n' | grep AGENT
+
+# 2. 检查启动脚本是否设置了 MEMORY_AGENT_ID
+grep MEMORY_AGENT_ID /path/to/workspace/skills/memory-system/scripts/start.sh
+
+# 3. 检查 systemd 服务文件是否设置了环境变量
+grep AGENT /home/woioeow/.config/systemd/user/memory-system.service
+```
+
+**修复方法**：
+
+1. 在 `start.sh` 中添加：
+```bash
+MEMORY_AGENT_ID=你的AgentID \
+./memory-system serve ...
+```
+
+2. 在 systemd 服务文件中添加：
+```ini
+Environment=MEMORY_AGENT_ID=你的AgentID
+```
+
+3. 重启服务：
+```bash
+systemctl --user restart memory-system
+```
+
+**多 Agent 共用场景**：
+- 如果多个 Agent 共用同一个 memory-system 服务
+- 写入记忆时必须设置 `MEMORY_AGENT_ID=对应的AgentID`
+- 否则所有记忆都会显示为 `unknown`
+
 ---
 
 ## 相关文件
